@@ -165,6 +165,24 @@ const MovieScheduler = () => {
     }));
   };
 
+  const handleDragStart = (e, scene) => {
+    e.dataTransfer.setData('sceneId', scene.id.toString());
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, dayId) => {
+    e.preventDefault();
+    const sceneId = parseInt(e.dataTransfer.getData('sceneId'));
+    if (sceneId) {
+      addSceneToDay(sceneId, dayId);
+    }
+  };
+
   const getAllCast = () => {
     const castSet = new Set();
     scenes.forEach(scene => {
@@ -610,23 +628,33 @@ const MovieScheduler = () => {
                 </div>
 
                 <div className="mb-6 p-4 bg-gray-100 rounded">
-                  <h3 className="font-semibold mb-2">Unscheduled Scenes</h3>
+                  <h3 className="font-semibold mb-2">Unscheduled Scenes (Drag to Schedule)</h3>
                   <div className="flex flex-wrap gap-2">
                     {scenes.filter(s => !s.scheduled).map(scene => (
                       <div
                         key={scene.id}
-                        className={`${scene.color} px-3 py-2 rounded shadow text-sm cursor-move`}
+                        className={`${scene.color} px-3 py-2 rounded shadow text-sm cursor-move hover:shadow-lg transition-shadow`}
                         draggable
+                        onDragStart={(e) => handleDragStart(e, scene)}
                       >
-                        Scene {scene.number}: {scene.name}
+                        <div className="font-semibold">Scene {scene.number}</div>
+                        <div className="text-xs">{scene.name}</div>
                       </div>
                     ))}
+                    {scenes.filter(s => !s.scheduled).length === 0 && (
+                      <p className="text-gray-500 text-sm">All scenes scheduled!</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   {schedule.map(day => (
-                    <div key={day.id} className="border-2 border-gray-300 rounded-lg p-4">
+                    <div 
+                      key={day.id} 
+                      className="border-2 border-gray-300 rounded-lg p-4 hover:border-blue-400 transition-colors"
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, day.id)}
+                    >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-4">
                           <h3 className="font-bold text-lg">Day {day.dayNumber}</h3>
@@ -663,25 +691,31 @@ const MovieScheduler = () => {
                           Delete Day
                         </button>
                       </div>
-                      <div className="space-y-2">
-                        {day.scenes.map((scene, idx) => (
-                          <div
-                            key={scene.id}
-                            className={`${scene.color} p-3 rounded flex justify-between items-center`}
-                          >
-                            <div>
-                              <span className="font-bold">Scene {scene.number}</span>: {scene.name} 
-                              <span className="ml-2 text-sm">({scene.intExt}/{scene.dayNight})</span>
-                              <span className="ml-2 text-sm">{scene.pages} pgs</span>
-                            </div>
-                            <button
-                              onClick={() => removeSceneFromDay(scene.id, day.id)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                      <div className="space-y-2 min-h-[60px] bg-gray-50 rounded p-2">
+                        {day.scenes.length === 0 ? (
+                          <div className="text-gray-400 text-center py-4 text-sm">
+                            Drop scenes here or use the dropdown above
                           </div>
-                        ))}
+                        ) : (
+                          day.scenes.map((scene, idx) => (
+                            <div
+                              key={scene.id}
+                              className={`${scene.color} p-3 rounded flex justify-between items-center shadow-sm hover:shadow-md transition-shadow`}
+                            >
+                              <div>
+                                <span className="font-bold">Scene {scene.number}</span>: {scene.name} 
+                                <span className="ml-2 text-sm">({scene.intExt}/{scene.dayNight})</span>
+                                <span className="ml-2 text-sm">{scene.pages} pgs</span>
+                              </div>
+                              <button
+                                onClick={() => removeSceneFromDay(scene.id, day.id)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   ))}
